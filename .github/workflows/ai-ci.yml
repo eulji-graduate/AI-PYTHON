@@ -1,0 +1,70 @@
+name: AI CI
+
+# 계층 서버(FastAPI)의 검사 게이트. BACKEND 의 Gate 1(semgrep @Query)·Gate 2(LLM Judge)는
+# Java 전용이라 그대로 옮겨오지 못한다 — 여기서는 lint · format · test 세 개가 전부다.
+#
+# 버전은 전부 고정한다. `latest` 는 조용히 바뀌어 게이트 동작이 어느 날 달라진다(재현성).
+# ⚠️ setup-uv 는 `v9` 같은 major 별칭 태그를 밀어주지 않는다 — 전체 버전으로 적어야 한다.
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+    types: [opened, synchronize, reopened, ready_for_review]
+
+  # PR 을 열기 전에도 결과를 받도록 push 에서도 돈다. PR 이 열려 있으면 같은 커밋에
+  # pull_request 런과 push 런이 각각 생기는데, 테스트가 1분대라 그 중복은 감수한다
+  # (대신 아래 concurrency 로 갱신된 커밋의 이전 런은 취소한다).
+  push:
+    branches:
+      - main
+      - develop
+      - "feat/**"
+      - "fix/**"
+      - "chore/**"
+      - "refactor/**"
+
+permissions:
+  contents: read
+
+# 같은 브랜치에 연속으로 push 하면 앞 런을 취소한다. 어차피 뒤 커밋만 의미가 있다.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-test:
+    name: Lint · Format · Test (uv)
+    # draft PR 은 건너뛴다. push 런은 pull_request 컨텍스트가 없으므로 항상 돈다.
+    if: github.event_name == 'push' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false # PR 코드를 실행하는 잡 — 러너에 git 자격증명을 남기지 않는다
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v9.0.0
+        with:
+          version: "0.11.28" # 로컬에서 검증한 것과 같은 uv
+          enable-cache: true
+
+      # --locked: uv.lock 이 pyproject 와 어긋나면 실패한다.
+      # 없으면 CI 가 로컬과 다른 의존성 조합으로 통과할 수 있고, 그 통과는 아무것도 보장하지 않는다.
+      # 파이썬 버전은 .python-version(3.12)을 uv 가 읽어 직접 설치한다.
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      # 포맷을 게이트로 두는 이유: 나중에 붙이면 PR 마다 포맷 diff 가 코드 변경에 섞여
+      # 리뷰어가 무엇이 바뀐 건지 못 가려낸다.
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+      - name: Pytest
+        run: uv run pytest -q

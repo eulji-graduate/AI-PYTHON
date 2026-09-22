@@ -1,0 +1,77 @@
+name: z-ai
+
+# AI EC2 의 /opt/z-ai-worker/docker-compose.yml 에 배치한다.
+#
+# 이 파일이 리포에 있는 이유 — 원본이 EC2 에만 있으면 인자 규약·서비스명이 조용히
+# 어긋난다. 실제로 그렇게 어긋났다(deploy.sh 가 $1 을 이미지로 읽던 것).
+# 여기가 원본이고, EC2 에는 이 파일을 그대로 올린다.
+
+services:
+  ai:
+    # deploy.sh 가 export 하는 값이다. 비어 있으면 뜨지 않는다 — 태그 없는 이미지가
+    # 조용히 올라가는 것보다 실패하는 편이 낫다(BACKEND compose 와 같은 관용구).
+    image: "${AI_IMAGE:?AI_IMAGE is required}"
+    container_name: z-ai
+
+    env_file:
+      - path: "${RUNTIME_ENV_FILE:-./.env.runtime}"
+        format: raw
+
+    environment:
+      # ⚠️ 컨테이너 안에서 localhost 는 자기 자신이다. Qdrant 는 **서비스명**으로 부른다
+      #    (.env.example 주석 — 그 파일의 localhost 값은 로컬 실행용이다).
+      #    여기서 덮어써야 SSM 에 로컬용 값이 들어 있어도 배포가 깨지지 않는다.
+      QDRANT_URL: http://qdrant:6333
+
+    depends_on:
+      qdrant:
+        condition: service_started
+
+    # ⚠️ 루프백(127.0.0.1)에 묶지 않는다. **Spring 은 다른 EC2 다** — 루프백에 묶으면 이
+    # 인스턴스 안에서만 닿고 Spring EC2 가 사설 IP 로 접근할 수 없다(처음에 그렇게 적었다가
+    # 모성진님이 잡아줬다 · PR #17).
+    #
+    # 외부 차단은 도커 바인딩이 아니라 **보안 그룹**이 한다 — AI EC2 인바운드 TCP 8000 은
+    # Spring EC2 의 SG 만 소스로 허용하고, 0.0.0.0/0 에는 열지 않는다. 두 층이 하는 일이
+    # 다르다: 바인딩은 "이 호스트의 어느 인터페이스로 받을까"이고 SG 는 "누가 올 수 있나"다.
+    ports:
+      - "8000:8000"
+
+    restart: unless-stopped
+    # 인프라 요구사항이 정한 값이다(40초) — 처리 중인 계층 호출이 끝날 시간을 준다.
+    # 짧으면 배포마다 도는 중인 회의의 계층이 끊기고, 그 회의는 재개(ANLZ-02)로만 살아난다.
+    stop_grace_period: 40s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  qdrant:
+    # 벡터는 사본이라 날아가도 MySQL 에서 재구축한다(설계 문서 「저장소 역할」).
+    # 그래도 볼륨을 둔다 — 재구축은 되지만 공짜가 아니다.
+    image: qdrant/qdrant:v1.16.1
+    container_name: z-qdrant
+
+    env_file:
+      - path: "${RUNTIME_ENV_FILE:-./.env.runtime}"
+        format: raw
+
+    volumes:
+      - qdrant-storage:/qdrant/storage
+
+    # 같은 인스턴스의 ai 컨테이너만 붙는다. 호스트로 낼 이유가 없다.
+    expose:
+      - "6333"
+
+    restart: unless-stopped
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+volumes:
+  qdrant-storage:

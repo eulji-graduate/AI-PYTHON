@@ -1,0 +1,14 @@
+# ── EC2 에서 실행되는 셸 스크립트는 줄바꿈을 LF 로 못 박는다 ──────────────────
+# infra/deploy.sh 는 리눅스(AI EC2)에서 `sudo /opt/z-ai-worker/deploy.sh` 로 돈다.
+# 윈도우 개발 환경에서 체크아웃하면 core.autocrlf 가 CRLF 로 바꿔 놓는데, 그 파일을
+# 그대로 EC2 에 올리면 **셔뱅이 `#!/usr/bin/env bash\r` 이 되어** 다음처럼 실패한다:
+#
+#     /usr/bin/env: 'bash\r': No such file or directory
+#
+# 배포 스크립트가 SSM 원격 실행으로 돌기 때문에 이 실패는 CD 로그 안쪽에서만 보이고,
+# "스크립트가 왜 안 도는지" 찾는 데 시간이 걸린다. 커밋 시점에 막는 편이 싸다.
+*.sh text eol=lf
+
+# compose 파일도 리눅스에서 읽는다. yaml 은 CRLF 로도 파싱되지만, EC2 로 올라가는
+# 파일들의 줄바꿈을 한 규칙으로 두는 편이 나중에 diff 를 볼 때 헷갈리지 않는다.
+infra/docker-compose.yml text eol=lf

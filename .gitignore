@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# 비밀값 — 실제 값은 커밋하지 않는다. 운영은 SSM Parameter Store 주입.
+.env
+
+# 로컬 오디오 샘플 (VAD 시험용). S3 경유가 정상 경로다.
+tmp/
+*.wav
+*.webm
+*.m4a

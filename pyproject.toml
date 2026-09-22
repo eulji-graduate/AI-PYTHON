@@ -1,0 +1,55 @@
+[project]
+name = "module06-ai"
+version = "0.1.0"
+description = "잇다(Z) 회의 분석 — AI EC2 계층 서버 (VAD · Gemini 계층 · Qdrant)"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "google-genai>=1.0",
+    # AI-08·09 벡터 인덱스. 테스트는 이 패키지의 로컬 모드(":memory:")로 같은 코드 경로를
+    # 돌린다 — 가짜 저장소를 따로 두면 우리가 맞다고 믿는 대로만 동작한다.
+    "qdrant-client>=1.12",
+    # AI-01 VAD. onnxruntime 을 직접 쓴다 — silero 래퍼 패키지는 torch 를 끌어와
+    # 추론만 하는 서버에 학습 프레임워크가 들어간다(이미지가 GB 단위로 커진다).
+    "onnxruntime>=1.20",
+    "numpy>=2.1",
+    # 오디오는 본문이 아니라 S3 키로 온다(명세 「내부 API 규칙」). 자격증명은 설정에 두지
+    # 않고 AI EC2 의 IAM 롤을 boto3 가 집는다.
+    "boto3>=1.35",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    # 계층 함수가 전부 async 다. TestClient 로 감싸면 라우팅까지 함께 도느라
+    # 후처리 하나를 검증하는 데 요청 본문 전체가 필요해진다 — 계층 함수를 직접 부른다.
+    "pytest-asyncio>=0.24",
+    "ruff>=0.7",
+    # fastapi.testclient 의 HTTP 백엔드. starlette 최신은 httpx2 를 요구한다
+    # (httpx 1.x 를 쓰면 StarletteDeprecationWarning).
+    "httpx2>=2.0",
+]
+
+[tool.ruff]
+line-length = 110
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI 는 의존성을 인자 기본값으로 선언하는 것이 관용구다(B008 이 잡는 패턴).
+# 함수 안으로 옮기면 FastAPI 가 의존성을 인식하지 못해 주입 자체가 깨진다.
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Header",
+    "fastapi.Query",
+    "fastapi.Path",
+    "fastapi.Body",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# 마커를 빠뜨린 async 테스트는 "통과"가 아니라 **조용히 건너뛴 것**이 된다.
+# strict 모드면 그런 테스트가 실패로 드러난다 — 안 도는 테스트가 초록불로 보이는 것은
+# 게이트가 생략을 통과로 처리하는 것과 같은 종류의 실패다.
+asyncio_mode = "strict"
