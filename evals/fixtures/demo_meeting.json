@@ -1,0 +1,184 @@
+{
+  "tenantId": 1,
+  "meetingId": 9001,
+  "title": "앱 개발 착수 - 기획 회의",
+  "meetingDate": "2026-11-09",
+  "participants": [
+    {
+      "personId": 2,
+      "name": "김서준"
+    },
+    {
+      "personId": 3,
+      "name": "이하윤"
+    },
+    {
+      "personId": 4,
+      "name": "박도현"
+    }
+  ],
+  "utterances": [
+    {
+      "utteranceId": 1,
+      "speakerId": 2,
+      "startMs": 0,
+      "text": "자, 그럼 앱 개발 착수 회의 시작하겠습니다. 오늘은 일정이랑 1차 범위부터 정리할게요."
+    },
+    {
+      "utteranceId": 2,
+      "speakerId": 2,
+      "startMs": 12000,
+      "text": "출시 목표는 12월 셋째 주로 보고 있고, 역산하면 개발 기간이 한 달 남짓입니다."
+    },
+    {
+      "utteranceId": 3,
+      "speakerId": 4,
+      "startMs": 24000,
+      "text": "한 달이면 범위를 줄여야 할 것 같은데요. 1차에는 뭐까지 넣나요?"
+    },
+    {
+      "utteranceId": 4,
+      "speakerId": 2,
+      "startMs": 36000,
+      "text": "로그인, 상품 목록, 장바구니까지만 하죠. 결제는 2차로 미루는 걸로 정리하겠습니다."
+    },
+    {
+      "utteranceId": 5,
+      "speakerId": 3,
+      "startMs": 48000,
+      "text": "결제를 빼면 화면이 많이 줄어드니까 온보딩에 시간을 더 쓸 수 있겠네요."
+    },
+    {
+      "utteranceId": 6,
+      "speakerId": 2,
+      "startMs": 60000,
+      "text": "맞아요. 그럼 1차 범위는 로그인, 상품 목록, 장바구니로 확정이고 결제는 2차입니다."
+    },
+    {
+      "utteranceId": 7,
+      "speakerId": 2,
+      "startMs": 72000,
+      "text": "전체 일정표는 제가 이번 주 수요일까지 정리해서 공유할게요."
+    },
+    {
+      "utteranceId": 8,
+      "speakerId": 4,
+      "startMs": 84000,
+      "text": "네, 일정표 나오면 저는 거기에 API 일정 맞춰 넣겠습니다."
+    },
+    {
+      "utteranceId": 9,
+      "speakerId": 2,
+      "startMs": 96000,
+      "text": "다음은 온보딩 플로우입니다. 디자인팀 시안이 아직 안 와서 그 부분이 걸려요."
+    },
+    {
+      "utteranceId": 10,
+      "speakerId": 3,
+      "startMs": 108000,
+      "text": "시안 없이 와이어프레임만 먼저 봐도 흐름 검토는 가능할 것 같아요."
+    },
+    {
+      "utteranceId": 11,
+      "speakerId": 2,
+      "startMs": 120000,
+      "text": "좋아요. 그럼 하윤님이 온보딩 플로우 와이어프레임 검토를 맡아 주세요. 다음 주 월요일까지 부탁드릴게요."
+    },
+    {
+      "utteranceId": 12,
+      "speakerId": 3,
+      "startMs": 132000,
+      "text": "알겠습니다, 월요일까지 의견 정리해서 올릴게요."
+    },
+    {
+      "utteranceId": 13,
+      "speakerId": 4,
+      "startMs": 144000,
+      "text": "시안은 디자인팀 강서연 님께 요청해야 하는데, 서준님이 내일까지 요청해 주실 수 있어요?"
+    },
+    {
+      "utteranceId": 14,
+      "speakerId": 2,
+      "startMs": 156000,
+      "text": "네, 제가 내일까지 강서연 님께 시안 요청할게요."
+    },
+    {
+      "utteranceId": 15,
+      "speakerId": 2,
+      "startMs": 168000,
+      "text": "이제 API 쪽 이야기해 볼게요. 프론트에서 바로 쓰려면 명세가 먼저 나와야 하죠."
+    },
+    {
+      "utteranceId": 16,
+      "speakerId": 3,
+      "startMs": 180000,
+      "text": "네, 상품 목록 API 명세가 제일 급해요. 그게 있어야 화면 붙일 수 있어요."
+    },
+    {
+      "utteranceId": 17,
+      "speakerId": 2,
+      "startMs": 192000,
+      "text": "그럼 도현님이 상품 API 명세 문서화를 이번 주 금요일까지 해주세요."
+    },
+    {
+      "utteranceId": 18,
+      "speakerId": 4,
+      "startMs": 204000,
+      "text": "이번 주 금요일이면 가능합니다."
+    },
+    {
+      "utteranceId": 19,
+      "speakerId": 2,
+      "startMs": 216000,
+      "text": "인증 쪽 문서도 필요한데, 그건 도현님이 이어서 해주시면 좋겠어요."
+    },
+    {
+      "utteranceId": 20,
+      "speakerId": 4,
+      "startMs": 228000,
+      "text": "네, 그것도 다음 주 수요일까지 제가 할게요."
+    },
+    {
+      "utteranceId": 21,
+      "speakerId": 3,
+      "startMs": 240000,
+      "text": "소셜 로그인도 넣으면 어떨까요? 카카오 로그인 요청이 많을 것 같아서요."
+    },
+    {
+      "utteranceId": 22,
+      "speakerId": 4,
+      "startMs": 252000,
+      "text": "좋긴 한데 심사나 키 발급 때문에 일정이 늘 수 있어요. 일단 이건 더 고민해 보죠."
+    },
+    {
+      "utteranceId": 23,
+      "speakerId": 2,
+      "startMs": 264000,
+      "text": "네, 소셜 로그인은 결정 못 했으니 다음 회의에서 다시 얘기합시다."
+    },
+    {
+      "utteranceId": 24,
+      "speakerId": 4,
+      "startMs": 276000,
+      "text": "그리고 테스트 서버는 누가 세팅하죠? 아직 담당이 없어서요."
+    },
+    {
+      "utteranceId": 25,
+      "speakerId": 2,
+      "startMs": 288000,
+      "text": "그건 이번 회의에서는 못 정하겠네요. 인프라 일정 확인하고 다시 정하죠."
+    },
+    {
+      "utteranceId": 26,
+      "speakerId": 3,
+      "startMs": 300000,
+      "text": "푸시 알림은 나중에 하면 어떨까요?"
+    },
+    {
+      "utteranceId": 27,
+      "speakerId": 2,
+      "startMs": 312000,
+      "text": "2차 이후로 보죠. 오늘은 여기까지 하겠습니다. 수고하셨습니다."
+    }
+  ]
+}

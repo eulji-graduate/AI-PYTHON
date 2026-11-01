@@ -7,6 +7,9 @@ __pycache__/
 # 비밀값 — 실제 값은 커밋하지 않는다. 운영은 SSM Parameter Store 주입.
 .env
 
+# 반복 측정 결과(evals/run_eval.py --out). 회의 원문과 모델 출력이 들어 있어 커밋하지 않는다.
+evals/out/
+
 # 로컬 오디오 샘플 (VAD 시험용). S3 경유가 정상 경로다.
 tmp/
 *.wav

@@ -1,0 +1,180 @@
+{
+  "topics": [
+    {
+      "topicSeq": 1,
+      "topic": "1차 범위와 일정",
+      "startUtteranceId": 1,
+      "endUtteranceId": 8
+    },
+    {
+      "topicSeq": 2,
+      "topic": "온보딩 플로우와 시안",
+      "startUtteranceId": 9,
+      "endUtteranceId": 14
+    },
+    {
+      "topicSeq": 3,
+      "topic": "API 명세 문서화",
+      "startUtteranceId": 15,
+      "endUtteranceId": 20
+    },
+    {
+      "topicSeq": 4,
+      "topic": "미결 논의",
+      "startUtteranceId": 21,
+      "endUtteranceId": 27
+    }
+  ],
+  "references": [
+    {
+      "utteranceId": 16,
+      "surface": "그게",
+      "keywords": [
+        "상품",
+        "명세"
+      ]
+    },
+    {
+      "utteranceId": 19,
+      "surface": "그건",
+      "keywords": [
+        "인증"
+      ]
+    },
+    {
+      "utteranceId": 20,
+      "surface": "그것도",
+      "keywords": [
+        "인증"
+      ]
+    }
+  ],
+  "items": [
+    {
+      "itemKey": "i1",
+      "topicSeq": 1,
+      "itemType": "DECISION",
+      "content": "1차 범위는 로그인, 상품 목록, 장바구니로 확정하고 결제는 2차로 미룬다",
+      "evidenceUtteranceId": 6,
+      "gateStatus": "CONFIRMED"
+    },
+    {
+      "itemKey": "i2",
+      "topicSeq": 1,
+      "itemType": "DECISION",
+      "content": "김서준이 전체 일정표를 이번 주 수요일까지 정리해 공유한다",
+      "evidenceUtteranceId": 7,
+      "gateStatus": "CONFIRMED"
+    },
+    {
+      "itemKey": "i3",
+      "topicSeq": 2,
+      "itemType": "DECISION",
+      "content": "이하윤이 온보딩 플로우 와이어프레임 검토를 다음 주 월요일까지 맡는다",
+      "evidenceUtteranceId": 11,
+      "gateStatus": "CONFIRMED"
+    },
+    {
+      "itemKey": "i4",
+      "topicSeq": 2,
+      "itemType": "DECISION",
+      "content": "김서준이 내일까지 디자인팀 강서연 님께 시안을 요청한다",
+      "evidenceUtteranceId": 14,
+      "gateStatus": "CONFIRMED"
+    },
+    {
+      "itemKey": "i6",
+      "topicSeq": 3,
+      "itemType": "DECISION",
+      "content": "박도현이 상품 API 명세 문서화를 이번 주 금요일까지 한다",
+      "evidenceUtteranceId": 17,
+      "gateStatus": "CONFIRMED"
+    },
+    {
+      "itemKey": "i7",
+      "topicSeq": 3,
+      "itemType": "DECISION",
+      "content": "박도현이 인증 API 명세 문서화를 다음 주 수요일까지 한다",
+      "evidenceUtteranceId": 20,
+      "gateStatus": "CONFIRMED"
+    },
+    {
+      "itemKey": "i8",
+      "topicSeq": 4,
+      "itemType": "DISCUSSION",
+      "content": "소셜 로그인 도입 여부는 결정하지 못해 다음 회의에서 다시 논의한다",
+      "evidenceUtteranceId": 23,
+      "gateStatus": "DISCUSSED"
+    },
+    {
+      "itemKey": "i9",
+      "topicSeq": 4,
+      "itemType": "BLOCKER",
+      "content": "테스트 서버 세팅 담당자가 아직 정해지지 않았다",
+      "evidenceUtteranceId": 25,
+      "gateStatus": "DISCUSSED"
+    }
+  ],
+  "tuples": [
+    {
+      "key": "t1",
+      "topicSeq": 1,
+      "keywords": [
+        "일정표"
+      ],
+      "assigneePersonId": 2,
+      "assigneeSource": "FIRST_PERSON",
+      "dueDate": "2026-11-11",
+      "evidenceUtteranceId": 7
+    },
+    {
+      "key": "t2",
+      "topicSeq": 2,
+      "keywords": [
+        "와이어프레임"
+      ],
+      "assigneePersonId": 3,
+      "assigneeSource": "EXPLICIT_CALL",
+      "dueDate": "2026-11-16",
+      "evidenceUtteranceId": 11
+    },
+    {
+      "key": "t3",
+      "topicSeq": 2,
+      "keywords": [
+        "시안"
+      ],
+      "assigneePersonId": 2,
+      "assigneeSource": "FIRST_PERSON",
+      "dueDate": "2026-11-10",
+      "evidenceUtteranceId": 14
+    },
+    {
+      "key": "t4",
+      "topicSeq": 3,
+      "keywords": [
+        "상품"
+      ],
+      "assigneePersonId": 4,
+      "assigneeSource": "EXPLICIT_CALL",
+      "dueDate": "2026-11-13",
+      "evidenceUtteranceId": 17
+    },
+    {
+      "key": "t5",
+      "topicSeq": 3,
+      "keywords": [
+        "인증"
+      ],
+      "assigneePersonId": 4,
+      "assigneeSource": "FIRST_PERSON",
+      "dueDate": "2026-11-18",
+      "evidenceUtteranceId": 20
+    }
+  ],
+  "notExpectedKeywords": [
+    "소셜 로그인",
+    "테스트 서버",
+    "푸시"
+  ]
+}
