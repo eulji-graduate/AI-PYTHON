@@ -20,6 +20,12 @@ OVERLAP_UTTERANCES = 3
 
 TOPIC_MAX = 300
 
+# 한 주제의 최소 발화 수. 이보다 짧은 구간은 앞 주제에 합친다(`parse_topics` ④).
+# 모델은 "결정 못 한 안건" 같은 두세 발화짜리 곁가지를 새 주제로 자르는 경향이 있다 —
+# 2026-11-05 baseline 에서 샘플 회의의 정답 4주제를 6주제로 쪼갠 일이 5회 중 3회였다.
+# ⚠️ 3 은 샘플 회의 1건으로 정한 값이다. 샘플을 늘린 뒤 같은 방식으로 다시 재야 한다.
+MIN_TOPIC_UTTERANCES = 3
+
 
 class SegmentTopicsRequest(CamelModel):
     tenant_id: int
