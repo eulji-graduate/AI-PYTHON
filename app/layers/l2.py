@@ -18,6 +18,7 @@ from app.layers import formatting as fmt
 from app.layers.runner import LayerRunner, LayerSpec
 from app.schemas.common import FewShotExample, Utterance
 from app.schemas.l2 import (
+    MIN_TOPIC_UTTERANCES,
     OVERLAP_UTTERANCES,
     TOPIC_MAX,
     SegmentTopicsRequest,
@@ -94,14 +95,44 @@ def build_prompt_variables(request: SegmentTopicsRequest, examples: list[FewShot
     }
 
 
+def merge_short_topics(starts: list[tuple[int, str]], total: int) -> list[tuple[int, str]]:
+    """`MIN_TOPIC_UTTERANCES` 발화보다 짧은 구간의 시작점을 버려 앞 주제에 합친다.
+
+    입력은 발화 순번 순으로 정렬되고 첫 주제가 0 번에 붙은 `(발화 순번, 주제명)` 목록이다.
+    합쳐진 주제의 이름은 `"<앞 주제명> 외 N건"` 이다 — 이름을 그대로 두면 구간이 넓어졌는데
+    제목은 처음 안건만 말해, 화면이 실제보다 좁게 말하게 된다.
+
+    첫 주제는 앞이 없어서 짧아도 합칠 곳이 없다. 뒤 주제를 끌어당기면 멀쩡한 주제를
+    지우게 되므로 그대로 둔다.
+    """
+    kept: list[list] = [[index, topic, 0] for index, topic in starts]  # [시작 순번, 주제명, 합친 수]
+    i = 1
+    while i < len(kept):
+        end_index = kept[i + 1][0] if i + 1 < len(kept) else total
+        if end_index - kept[i][0] < MIN_TOPIC_UTTERANCES:
+            kept[i - 1][2] += 1 + kept[i][2]
+            del kept[i]  # 다음 구간이 i 자리로 올라오므로 i 는 올리지 않는다
+        else:
+            i += 1
+
+    merged: list[tuple[int, str]] = []
+    for index, topic, absorbed in kept:
+        if absorbed:
+            suffix = f" 외 {absorbed}건"
+            topic = fmt.clip(topic, TOPIC_MAX - len(suffix)) + suffix
+        merged.append((index, topic))
+    return merged
+
+
 def parse_topics(raw: dict, utterances: list[Utterance]) -> list[TopicSegment]:
     """시작점 목록 → 겹침도 구멍도 없는 구간.
 
     ① 목록에 없는 시작점은 버린다
     ② 발화 순서로 정렬하고 중복 시작점은 하나로 합친다
     ③ 첫 주제를 첫 발화까지 당긴다 — 앞 구간이 어떤 주제에도 안 속하면 그 안의 결정이 사라진다
-    ④ 끝 = 다음 시작 직전. 마지막 주제는 마지막 발화까지
-    ⑤ L3 에 넘길 발화에 앞 주제 끝 오버랩을 얹는다
+    ④ `MIN_TOPIC_UTTERANCES` 발화보다 짧은 구간은 앞 주제에 합친다 — 주제명은 "X 외 N건"
+    ⑤ 끝 = 다음 시작 직전. 마지막 주제는 마지막 발화까지
+    ⑥ L3 에 넘길 발화에 앞 주제 끝 오버랩을 얹는다
     """
     order = {u.utterance_id: index for index, u in enumerate(utterances)}
 
@@ -130,6 +161,8 @@ def parse_topics(raw: dict, utterances: list[Utterance]) -> list[TopicSegment]:
     # 첫 주제를 첫 발화로 당긴다. 모델이 인사·잡담 구간을 건너뛰고 시작점을 잡는 일이
     # 흔한데, 그 구간을 버리면 거기서 나온 결정이 어떤 주제에도 속하지 않게 된다.
     deduped[0] = (0, deduped[0][1])
+
+    deduped = merge_short_topics(deduped, total=len(utterances))
 
     segments: list[TopicSegment] = []
     for seq, (start_index, topic) in enumerate(deduped, start=1):
