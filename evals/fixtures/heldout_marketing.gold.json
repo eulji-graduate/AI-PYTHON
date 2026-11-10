@@ -1,0 +1,32 @@
+{
+  "topics": [
+    {
+      "topicSeq": 1,
+      "topic": "예산과 일정",
+      "startUtteranceId": 1,
+      "endUtteranceId": 8
+    },
+    {
+      "topicSeq": 2,
+      "topic": "인플루언서 섭외",
+      "startUtteranceId": 9,
+      "endUtteranceId": 15
+    },
+    {
+      "topicSeq": 3,
+      "topic": "랜딩페이지 제작",
+      "startUtteranceId": 16,
+      "endUtteranceId": 21
+    },
+    {
+      "topicSeq": 4,
+      "topic": "미결 논의",
+      "startUtteranceId": 22,
+      "endUtteranceId": 28
+    }
+  ],
+  "references": [],
+  "items": [],
+  "tuples": [],
+  "notExpectedKeywords": []
+}

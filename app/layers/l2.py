@@ -28,8 +28,8 @@ from app.schemas.l2 import (
 
 SPEC = LayerSpec(
     layer="L2",
-    prompt_file="l2_segment_topics.v1.txt",
-    prompt_version="v1",
+    prompt_file="l2_segment_topics.v2.txt",
+    prompt_version="v2",
     dry_run_payload={"topics": []},
 )
 
