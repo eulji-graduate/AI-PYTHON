@@ -52,6 +52,49 @@ def score_references(predicted: list[dict], gold: list[dict]) -> dict:
     }
 
 
+def score_items(predicted: list[dict], gold_items: list[dict], topics: list[dict]) -> dict:
+    """주제별 정리(L3) — 정답 항목을 그 주제에서 같은 근거 발화로 뽑았는가, 오버랩에서 뽑은 항목이 얼마나 되는가.
+
+    `predicted`는 주제별 응답 `{"topicSeq", "items": [...]}`의 목록이고, `topics`는 정답 주제의 고유 구간
+    (`startUtteranceId`~`endUtteranceId`)이다.
+
+    ⚠️ 짝은 (주제, 근거 발화 id)다. 다른 주제에서 같은 발화를 근거로 뽑은 항목은 맞힌 것으로 세지 않는다 —
+       그건 L2가 앞 주제 끝에 얹은 오버랩에서 중복으로 뽑힌 것이고 `overlap_item_*`로 따로 센다.
+    ⚠️ 근거 발화가 정답과 정확히 같아야 맞다. 같은 약속을 다음 발화(맞장구)를 근거로 접으면 놓친 것으로 센다.
+       엄격한 기준이지만, 그 접힘이 바로 뒤 계층(L3.5·L4)이 항목을 못 받는 경로라서 일부러 그렇게 둔다.
+    """
+    own = {t["topicSeq"]: (t["startUtteranceId"], t["endUtteranceId"]) for t in topics}
+    types_by_key: dict[tuple[int, int], set[str]] = {}
+    total = 0
+    overlap = 0
+    for result in predicted:
+        seq = result["topicSeq"]
+        for item in result.get("items", []):
+            total += 1
+            evidence = item["evidenceUtteranceId"]
+            types_by_key.setdefault((seq, evidence), set()).add(item["itemType"])
+            if seq in own and not own[seq][0] <= evidence <= own[seq][1]:
+                overlap += 1
+
+    hit = 0
+    type_hit = 0
+    for target in gold_items:
+        types = types_by_key.get((target["topicSeq"], target["evidenceUtteranceId"]))
+        if types is None:
+            continue
+        hit += 1
+        if target["itemType"] in types:
+            type_hit += 1
+
+    return {
+        "item_recall": _ratio(hit, len(gold_items)),
+        "item_type_accuracy": _ratio(type_hit, hit),
+        "item_count": total,
+        "overlap_item_count": overlap,
+        "overlap_item_rate": _ratio(overlap, total),
+    }
+
+
 def score_gate(verdicts: list[dict], gold_items: list[dict]) -> dict:
     """확정/논의 게이트 — 정확도와, 논의인데 확정으로 올린 오탐 수.
 

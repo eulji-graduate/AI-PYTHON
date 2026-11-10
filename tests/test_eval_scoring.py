@@ -11,7 +11,8 @@ from itertools import pairwise
 import pytest
 
 from app.schemas.l1_5 import ResolveReferenceRequest
-from app.schemas.l2 import SegmentTopicsRequest
+from app.schemas.l2 import OVERLAP_UTTERANCES, SegmentTopicsRequest
+from app.schemas.l3 import SummarizeTopicRequest
 from app.schemas.l3_5 import GateRequest
 from app.schemas.l4 import ExtractTuplesRequest
 from app.schemas.l5 import VerifyRequest
@@ -77,6 +78,8 @@ def test_정답_마감일은_회의일_뒤의_날짜다(meeting, gold):
 def test_모든_계층의_요청이_실제_요청_스키마를_통과한다(meeting, gold):
     ResolveReferenceRequest.model_validate(run_eval.l1_5_request(meeting))
     SegmentTopicsRequest.model_validate(run_eval.l2_request(meeting))
+    for payload in run_eval.l3_requests(meeting, gold):
+        SummarizeTopicRequest.model_validate(payload)
     for payload in run_eval.l3_5_requests(meeting, gold):
         GateRequest.model_validate(payload)
     for payload in run_eval.l4_requests(meeting, gold):
@@ -101,7 +104,90 @@ def test_L5는_배정마다_맞는_요청과_틀린_요청을_하나씩_만든�
         assert right["tuple"]["assigneeCandidatePersonId"] != wrong["tuple"]["assigneeCandidatePersonId"]
 
 
+def test_L3_요청은_운영과_같이_앞_주제_끝_발화를_얹는다(meeting, gold):
+    requests = run_eval.l3_requests(meeting, gold)
+    assert [r["topicSeq"] for r in requests] == [t["topicSeq"] for t in gold["topics"]]
+
+    for request, topic in zip(requests, gold["topics"], strict=True):
+        ids = [u["utteranceId"] for u in request["utterances"]]
+        assert ids[-1] == topic["endUtteranceId"]
+        own_start = ids.index(topic["startUtteranceId"])
+        # 첫 주제는 앞이 없어 얹을 게 없고, 나머지는 앞 주제의 끝 OVERLAP_UTTERANCES 발화가 앞에 붙는다.
+        assert own_start == (0 if topic["startUtteranceId"] == 1 else OVERLAP_UTTERANCES)
+        assert ids == list(range(ids[0], ids[-1] + 1))
+
+
+def test_L3_요청은_오버랩_수를_바꿀_수_있고_0이면_고유_구간만_보낸다(meeting, gold):
+    for request, topic in zip(run_eval.l3_requests(meeting, gold, overlap=0), gold["topics"], strict=True):
+        ids = [u["utteranceId"] for u in request["utterances"]]
+        assert (ids[0], ids[-1]) == (topic["startUtteranceId"], topic["endUtteranceId"])
+
+
 # ── 채점 ────────────────────────────────────────────────────────────────────────
+
+
+def _l3_result(
+    gold: dict, *, drop: set[str] = frozenset(), retype: dict[str, str] | None = None
+) -> list[dict]:
+    """정답 항목을 그대로 돌려주는 L3 응답(주제별). 일부를 빼거나 유형을 바꿔 오류를 만든다."""
+    retype = retype or {}
+    results = []
+    for topic in gold["topics"]:
+        items = [
+            {
+                "itemType": retype.get(i["itemKey"], i["itemType"]),
+                "content": i["content"],
+                "evidenceUtteranceId": i["evidenceUtteranceId"],
+            }
+            for i in gold["items"]
+            if i["topicSeq"] == topic["topicSeq"] and i["itemKey"] not in drop
+        ]
+        results.append({"topicSeq": topic["topicSeq"], "items": items})
+    return results
+
+
+def test_항목_채점_완벽한_입력(gold):
+    score = scoring.score_items(_l3_result(gold), gold["items"], gold["topics"])
+    assert score == {
+        "item_recall": 1.0,
+        "item_type_accuracy": 1.0,
+        "item_count": len(gold["items"]),
+        "overlap_item_count": 0,
+        "overlap_item_rate": 0.0,
+    }
+
+
+def test_항목_채점_놓친_항목은_재현율을_깎고_유형_정확도는_짝이_맞은_것만_본다(gold):
+    score = scoring.score_items(_l3_result(gold, drop={"i2"}), gold["items"], gold["topics"])
+    assert score["item_recall"] == pytest.approx((len(gold["items"]) - 1) / len(gold["items"]))
+    assert score["item_type_accuracy"] == 1.0
+
+
+def test_항목_채점_유형만_틀리면_재현율은_유지되고_유형_정확도만_떨어진다(gold):
+    score = scoring.score_items(_l3_result(gold, retype={"i8": "BLOCKER"}), gold["items"], gold["topics"])
+    assert score["item_recall"] == 1.0
+    assert score["item_type_accuracy"] == pytest.approx((len(gold["items"]) - 1) / len(gold["items"]))
+
+
+def test_항목_채점_오버랩_발화에서_뽑힌_항목은_따로_세고_재현율을_올리지_않는다(gold):
+    result = _l3_result(gold, drop={"i2"})
+    # 주제 1의 정답(근거 7)을 주제 2의 오버랩에서 다시 뽑은 상황 — 다른 주제에서 맞힌 건 맞힌 게 아니다.
+    topic_two = next(r for r in result if r["topicSeq"] == 2)
+    topic_two["items"].append({"itemType": "DECISION", "content": "일정표 공유", "evidenceUtteranceId": 7})
+
+    score = scoring.score_items(result, gold["items"], gold["topics"])
+
+    assert score["overlap_item_count"] == 1
+    assert score["overlap_item_rate"] == pytest.approx(1 / score["item_count"])
+    assert score["item_recall"] == pytest.approx((len(gold["items"]) - 1) / len(gold["items"]))
+
+
+def test_항목_채점_아무것도_못_뽑으면_재현율_0이고_나머지는_측정_불가다(gold):
+    score = scoring.score_items([], gold["items"], gold["topics"])
+    assert score["item_recall"] == 0.0
+    assert score["item_type_accuracy"] is None
+    assert score["overlap_item_rate"] is None
+    assert score["item_count"] == 0
 
 
 def test_배정_채점_완벽한_입력(gold):
@@ -214,6 +300,18 @@ def _perfect_server(gold: dict):
             return {"references": refs, "usage": usage}, 0.01
         if path == run_eval.PATHS["l2"]:
             return {"topics": gold["topics"], "usage": usage}, 0.01
+        if path == run_eval.PATHS["l3"]:
+            items = [
+                {
+                    "itemType": i["itemType"],
+                    "content": i["content"],
+                    "reason": "",
+                    "evidenceUtteranceId": i["evidenceUtteranceId"],
+                }
+                for i in gold["items"]
+                if i["topicSeq"] == payload["topicSeq"]
+            ]
+            return {"topicSeq": payload["topicSeq"], "items": items, "usage": usage}, 0.01
         if path == run_eval.PATHS["l3_5"]:
             status = {i["itemKey"]: i["gateStatus"] for i in gold["items"]}
             verdicts = [
@@ -259,6 +357,10 @@ def test_완벽한_서버로_전체를_돌리면_모든_계층이_만점이고_�
     assert summary["metrics"]["l5"]["positive_agree_rate"]["mean"] == 1.0
     assert summary["metrics"]["l5"]["negative_reject_rate"]["mean"] == 1.0
     assert summary["metrics"]["l2"]["start_recall"]["mean"] == 1.0
+    assert summary["metrics"]["l3"]["item_recall"]["mean"] == 1.0
+    assert summary["metrics"]["l3"]["overlap_item_count"]["mean"] == 0
+    assert summary["instability"]["l3"]["unstable"] == 0
+    assert summary["usage"]["l3"]["calls"]["mean"] == len(gold["topics"])
     assert summary["instability"]["l4"]["unstable"] == 0
     assert summary["usage"]["l5"]["calls"]["mean"] == 2 * len(gold["tuples"])
 
