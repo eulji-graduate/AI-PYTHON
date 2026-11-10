@@ -18,6 +18,8 @@ seed 고정에서도 14건 중 매회 3건이 뒤집힘)이 근거다. 그래서
 | `fixtures/demo_meeting.gold.json` | 정답 라벨 (주제 4, 항목 8, 배정 5, 지시어 3) |
 | `scoring.py` | 채점 순수 함수 |
 | `run_eval.py` | N번 실행해 요약을 내는 스크립트 |
+| `fixtures/heldout_marketing.json`·`heldout_hr.json` (+ `.gold.json`) | **L2 전용** 일반화 확인 샘플 2건(발화 28·26, 주제 4씩, 서로 다른 주제). 정답 라벨은 주제 분할(`topics`)만 있다 |
+| `probe_l2.py` | 같은 회의를 N번 보내 **시작점 집합별 빈도**와 틀린 사례의 제목을 센다 |
 
 샘플 회의에는 일부러 이런 것들을 섞었다.
 
@@ -44,6 +46,19 @@ INTERNAL_TOKEN=test uv run python -m evals.run_eval --runs 5 --out evals/out/dry
 
 옵션: `--runs N` (기본 5), `--layers l4,l5` (일부 계층만), `--base-url`, `--timeout`.
 
+다른 샘플은 `--fixture`·`--gold`로 고른다. 추가 샘플(`heldout_*`)은 L2만 채점하므로 `--layers l2`와 함께 쓴다.
+
+`run_eval`은 평균만 남겨서 *어떤 시작점을 냈는지*는 모른다. 틀렸을 때 같은 실수가 매번 나오는지(체계적)
+가끔 나오는지(흔들림)는 `probe_l2`로 본다. 토큰은 환경변수로만 준다.
+
+```bash
+INTERNAL_TOKEN=... uv run python -m evals.probe_l2 --runs 30 \
+    --fixture evals/fixtures/heldout_hr.json --gold evals/fixtures/heldout_hr.gold.json
+```
+
+표본이 작으면 차이를 못 가른다. 정확 일치율이 80%에서 100%로 바뀌는 정도는 10회로는 Fisher 정확 검정
+p≈0.47이라 구분되지 않고, 30회면 p≈0.02다. 판정 전에 횟수부터 정한다.
+
 ## 무엇을 재나
 
 입력을 앞 계층 출력이 아니라 **정답 라벨**에서 만든다(격리 모드). 앞 계층이 틀려도 뒤 계층 점수가
@@ -68,5 +83,9 @@ INTERNAL_TOKEN=test uv run python -m evals.run_eval --runs 5 --out evals/out/dry
 
 - 정답 라벨은 사람이 판단한 값이다. 애매한 발화("2차 이후로 보죠")는 라벨에서 뺐다.
 - 샘플 회의는 한 건이다. 점수는 이 회의에 대한 것이지 일반 성능이 아니다.
+- `heldout_*` 2건은 L2 점검을 위해 **코드 작성자가 만든 합성 회의**이고, 정답 라벨도 같은 사람이 정했다.
+  L2 프롬프트 v2의 "결론 없이 미뤄진 사항은 앞 안건에서 떼어 하나의 구간으로 묶는다"는 규칙이 이 라벨의
+  관례와 같다. 그래서 이 점수는 **모델이 그 관례를 따르는가**를 재는 것이지, 서로 다른 사람이 같은 라벨을
+  붙이는지(라벨 일치도)나 실제 회의에서의 성능을 재는 것이 아니다. 실제 회의로 검증하기 전까지는 그렇게 읽는다.
 - L3(주제별 정리)는 채점하지 않는다.
 - `DRY_RUN=1`은 각 계층이 고정 스텁을 돌려주므로 요청 스키마와 배선만 확인된다.

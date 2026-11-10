@@ -1,0 +1,178 @@
+{
+  "tenantId": 1,
+  "meetingId": 9003,
+  "title": "상반기 인사 평가 제도 회의",
+  "meetingDate": "2026-11-10",
+  "participants": [
+    {
+      "personId": 2,
+      "name": "정우성"
+    },
+    {
+      "personId": 3,
+      "name": "최예린"
+    },
+    {
+      "personId": 4,
+      "name": "송민재"
+    }
+  ],
+  "utterances": [
+    {
+      "utteranceId": 1,
+      "speakerId": 2,
+      "startMs": 0,
+      "text": "상반기 인사 평가 제도 회의 시작하겠습니다. 먼저 평가 기간부터 정리할게요."
+    },
+    {
+      "utteranceId": 2,
+      "speakerId": 2,
+      "startMs": 12000,
+      "text": "자기평가는 6월 셋째 주, 상사 평가는 넷째 주로 보고 있습니다."
+    },
+    {
+      "utteranceId": 3,
+      "speakerId": 3,
+      "startMs": 24000,
+      "text": "넷째 주면 휴가 시즌이랑 겹치는데 괜찮을까요?"
+    },
+    {
+      "utteranceId": 4,
+      "speakerId": 2,
+      "startMs": 36000,
+      "text": "그럼 상사 평가를 6월 마지막 주 월요일부터로 하루 늦추죠."
+    },
+    {
+      "utteranceId": 5,
+      "speakerId": 3,
+      "startMs": 48000,
+      "text": "네, 그렇게 하면 문제없어요. 일정표는 제가 이번 주 수요일까지 공유할게요."
+    },
+    {
+      "utteranceId": 6,
+      "speakerId": 4,
+      "startMs": 60000,
+      "text": "알겠습니다. 저는 평가 시스템 오픈 일정을 거기에 맞춰 두겠습니다."
+    },
+    {
+      "utteranceId": 7,
+      "speakerId": 2,
+      "startMs": 72000,
+      "text": "다음은 평가 항목 개편입니다. 지금 항목이 너무 많다는 의견이 많았어요."
+    },
+    {
+      "utteranceId": 8,
+      "speakerId": 3,
+      "startMs": 84000,
+      "text": "업적이랑 역량 두 갈래로 줄이는 건 어떨까요?"
+    },
+    {
+      "utteranceId": 9,
+      "speakerId": 4,
+      "startMs": 96000,
+      "text": "비중은 어떻게 하죠? 업적을 더 높게 보나요?"
+    },
+    {
+      "utteranceId": 10,
+      "speakerId": 2,
+      "startMs": 108000,
+      "text": "업적 육십, 역량 사십으로 가죠. 그렇게 확정하겠습니다."
+    },
+    {
+      "utteranceId": 11,
+      "speakerId": 3,
+      "startMs": 120000,
+      "text": "역량 항목에 협업도 넣을까요? 팀 간 협업 얘기가 많아서요."
+    },
+    {
+      "utteranceId": 12,
+      "speakerId": 2,
+      "startMs": 132000,
+      "text": "협업은 역량 안에 포함하는 걸로 하죠. 비중은 그대로 사십이에요."
+    },
+    {
+      "utteranceId": 13,
+      "speakerId": 4,
+      "startMs": 144000,
+      "text": "그럼 항목 정의서는 제가 다음 주 금요일까지 정리해서 올릴게요."
+    },
+    {
+      "utteranceId": 14,
+      "speakerId": 3,
+      "startMs": 156000,
+      "text": "네, 정의서 나오면 평가자 교육 자료에 반영하겠습니다."
+    },
+    {
+      "utteranceId": 15,
+      "speakerId": 2,
+      "startMs": 168000,
+      "text": "이제 피드백 면담 운영을 얘기해 볼게요. 평가 결과를 어떻게 전달할지요."
+    },
+    {
+      "utteranceId": 16,
+      "speakerId": 3,
+      "startMs": 180000,
+      "text": "팀장이 개별 면담으로 전달하는 방식이 가장 무난해요."
+    },
+    {
+      "utteranceId": 17,
+      "speakerId": 2,
+      "startMs": 192000,
+      "text": "좋아요. 그럼 면담은 7월 둘째 주까지 모두 끝내는 걸로 하죠."
+    },
+    {
+      "utteranceId": 18,
+      "speakerId": 4,
+      "startMs": 204000,
+      "text": "면담 일정 조율용 양식은 제가 만들어서 팀장들께 공유할게요."
+    },
+    {
+      "utteranceId": 19,
+      "speakerId": 3,
+      "startMs": 216000,
+      "text": "네, 면담 가이드는 제가 이번 주 안에 초안 쓸게요."
+    },
+    {
+      "utteranceId": 20,
+      "speakerId": 2,
+      "startMs": 228000,
+      "text": "면담 방식은 개별 면담으로 확정입니다."
+    },
+    {
+      "utteranceId": 21,
+      "speakerId": 4,
+      "startMs": 240000,
+      "text": "면담 시간을 삼십 분으로 줄이면 어떨까요? 팀장들 부담이 클 것 같아서요."
+    },
+    {
+      "utteranceId": 22,
+      "speakerId": 3,
+      "startMs": 252000,
+      "text": "시간이 짧으면 피드백 깊이가 얕아질 수 있어서 고민이에요. 일단 더 논의해 보죠."
+    },
+    {
+      "utteranceId": 23,
+      "speakerId": 2,
+      "startMs": 264000,
+      "text": "네, 면담 시간은 결정 못 했으니 다음 회의에서 다시 정합시다."
+    },
+    {
+      "utteranceId": 24,
+      "speakerId": 4,
+      "startMs": 276000,
+      "text": "그리고 다면평가 도입은 누가 검토하죠? 아직 담당이 없어요."
+    },
+    {
+      "utteranceId": 25,
+      "speakerId": 2,
+      "startMs": 288000,
+      "text": "그건 이번에는 못 정하겠네요. 일정 보고 다시 정하죠."
+    },
+    {
+      "utteranceId": 26,
+      "speakerId": 3,
+      "startMs": 300000,
+      "text": "알겠습니다. 오늘은 여기까지 하겠습니다. 수고하셨습니다."
+    }
+  ]
+}
