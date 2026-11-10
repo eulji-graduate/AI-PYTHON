@@ -23,15 +23,17 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from app.schemas.l2 import OVERLAP_UTTERANCES
 from evals import scoring
 
 HERE = Path(__file__).resolve().parent
 FIXTURES = HERE / "fixtures"
-LAYERS = ("l1_5", "l2", "l3_5", "l4", "l5", "overview")
+LAYERS = ("l1_5", "l2", "l3", "l3_5", "l4", "l5", "overview")
 
 PATHS = {
     "l1_5": "/internal/layers/l1-5/resolve-reference",
     "l2": "/internal/layers/l2/segment-topics",
+    "l3": "/internal/layers/l3/summarize-topic",
     "l3_5": "/internal/layers/l3-5/gate",
     "l4": "/internal/layers/l4/extract-tuples",
     "l5": "/internal/layers/l5/verify",
@@ -92,6 +94,29 @@ def l1_5_request(meeting: dict) -> dict:
 
 def l2_request(meeting: dict) -> dict:
     return {**base(meeting), "utterances": meeting["utterances"]}
+
+
+def l3_requests(meeting: dict, gold: dict, overlap: int = OVERLAP_UTTERANCES) -> list[dict]:
+    """L3 입력 — 정답 주제 구간에 **운영과 같이 앞 주제 끝 `overlap`발화를 얹어** 보낸다.
+
+    다른 계층은 고유 구간(`utterances_of`)만 보내지만 L3는 그러면 안 된다. 운영의 L2(`parse_topics`)가
+    오버랩을 얹어 L3에 넘기고, 오버랩 구간에서 항목이 중복으로 뽑히는 것이 바로 이 계층에서 일어나는 일이다.
+    """
+    utterances = meeting["utterances"]
+    requests = []
+    for topic in gold["topics"]:
+        start = next(i for i, u in enumerate(utterances) if u["utteranceId"] >= topic["startUtteranceId"])
+        end = max(i for i, u in enumerate(utterances) if u["utteranceId"] <= topic["endUtteranceId"])
+        requests.append(
+            {
+                **base(meeting),
+                "topicSeq": topic["topicSeq"],
+                "topic": topic["topic"],
+                "utterances": utterances[max(0, start - overlap) : end + 1],
+                "participants": meeting["participants"],
+            }
+        )
+    return requests
 
 
 def l3_5_requests(meeting: dict, gold: dict) -> list[dict]:
@@ -248,6 +273,24 @@ class Run:
         data = self.call("l2", l2_request(self.meeting))
         if data is not None:
             self.metrics["l2"] = scoring.score_topics(data.get("topics", []), self.gold["topics"])
+
+    def run_l3(self) -> None:
+        results: list[dict] = []
+        for payload in l3_requests(self.meeting, self.gold):
+            data = self.call("l3", payload)
+            if data is not None:
+                results.append({"topicSeq": payload["topicSeq"], "items": data.get("items", [])})
+        # ⚠️ 정답 항목별로 (주제, 근거 발화)가 뽑혔는지와 유형을 접어 둔다 — 실행 간 같은 항목이 갈렸는지 비교한다.
+        got = {
+            (result["topicSeq"], item["evidenceUtteranceId"]): item["itemType"]
+            for result in results
+            for item in result["items"]
+        }
+        self.outcomes["l3"] = {
+            item["itemKey"]: got.get((item["topicSeq"], item["evidenceUtteranceId"]), "<없음>")
+            for item in self.gold["items"]
+        }
+        self.metrics["l3"] = scoring.score_items(results, self.gold["items"], self.gold["topics"])
 
     def run_l3_5(self) -> None:
         verdicts: list[dict] = []
