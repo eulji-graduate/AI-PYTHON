@@ -24,8 +24,8 @@ from app.schemas.l3 import (
 
 SPEC = LayerSpec(
     layer="L3",
-    prompt_file="l3_summarize_topic.v1.txt",
-    prompt_version="v1",
+    prompt_file="l3_summarize_topic.v2.txt",
+    prompt_version="v2",
     dry_run_payload={"summary": "", "items": []},
 )
 
@@ -97,9 +97,29 @@ def build_prompt_variables(request: SummarizeTopicRequest, examples: list[FewSho
     return {
         "TOPIC": request.topic,
         "PARTICIPANTS": fmt.format_participants(request.participants),
-        "UTTERANCES": fmt.format_utterances(request.utterances),
+        "UTTERANCES": format_topic_utterances(request),
         "FEW_SHOT": fmt.format_few_shot(examples),
     }
+
+
+def format_topic_utterances(request: SummarizeTopicRequest) -> str:
+    if request.topic_start_utterance_id is None:
+        return fmt.format_utterances(request.utterances)
+
+    for index, utterance in enumerate(request.utterances):
+        if utterance.utterance_id != request.topic_start_utterance_id:
+            continue
+        if index == 0:
+            break
+        context = fmt.format_utterances(request.utterances[:index])
+        current_topic = fmt.format_utterances(request.utterances[index:])
+        return (
+            "아래 이전 주제 발화는 문맥을 이해할 때만 참고한다. "
+            "요약은 현재 주제만 다루고 항목의 근거도 현재 주제 발화에서만 고른다.\n\n"
+            f"### 이전 주제 참고 발화\n\n{context}\n\n"
+            f"### 현재 주제 발화\n\n{current_topic}"
+        )
+    return fmt.format_utterances(request.utterances)
 
 
 def parse_items(raw: dict, utterances: list[Utterance]) -> list[TopicItemDraft]:
