@@ -8,9 +8,9 @@
 `gate_status` 는 여기서 정하지 않는다 — 그건 L3.5 의 일이다(한 계층 한 목표).
 """
 
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from app.schemas.common import CamelModel, FewShotExample, Participant, Usage, Utterance
 
@@ -34,6 +34,16 @@ class SummarizeTopicRequest(CamelModel):
     utterances: list[Utterance]
     participants: list[Participant]
     query_text: str | None = None
+    # 발화 목록에서 이 ID 앞에 오는 발화는 이전 주제의 참고 문맥이다.
+    topic_start_utterance_id: int | None = None
+
+    @model_validator(mode="after")
+    def validate_topic_start(self) -> Self:
+        if self.topic_start_utterance_id is not None and not any(
+            utterance.utterance_id == self.topic_start_utterance_id for utterance in self.utterances
+        ):
+            raise ValueError("topicStartUtteranceId must identify an utterance in utterances")
+        return self
 
 
 class TopicItemDraft(CamelModel):

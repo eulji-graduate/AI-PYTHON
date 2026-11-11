@@ -5,11 +5,15 @@
 """
 
 import json
+import sys
 from datetime import date
 from itertools import pairwise
 
 import pytest
+from pydantic import ValidationError
 
+from app.layers.l3 import SPEC, build_prompt_variables
+from app.layers.runner import load_prompt, render_prompt
 from app.schemas.l1_5 import ResolveReferenceRequest
 from app.schemas.l2 import OVERLAP_UTTERANCES, SegmentTopicsRequest
 from app.schemas.l3 import SummarizeTopicRequest
@@ -121,6 +125,81 @@ def test_L3_요청은_오버랩_수를_바꿀_수_있고_0이면_고유_구간�
     for request, topic in zip(run_eval.l3_requests(meeting, gold, overlap=0), gold["topics"], strict=True):
         ids = [u["utteranceId"] for u in request["utterances"]]
         assert (ids[0], ids[-1]) == (topic["startUtteranceId"], topic["endUtteranceId"])
+
+
+def test_L3_경계가_켜지면_평가_요청의_참고_발화와_현재_발화를_나눠_렌더링한다(monkeypatch, meeting, gold):
+    template = load_prompt(SPEC.prompt_file)
+    previous_heading = "### 이전 주제 참고 발화"
+    current_heading = "### 현재 주제 발화"
+    validated_topics = []
+
+    def check_request(_base_url, path, _token, payload, _timeout):
+        assert path == run_eval.PATHS["l3"]
+        request = SummarizeTopicRequest.model_validate(payload)
+        topic = run_eval.topic_of(gold, request.topic_seq)
+        assert request.topic_start_utterance_id == topic["startUtteranceId"]
+        prompt = render_prompt(template, build_prompt_variables(request, []))
+        boundary = next(
+            i for i, u in enumerate(request.utterances) if u.utterance_id == request.topic_start_utterance_id
+        )
+        if boundary:
+            context, current = prompt.split(current_heading)
+            assert previous_heading in context
+            assert request.utterances[boundary - 1].text in context
+            assert request.utterances[boundary].text in current
+        else:
+            assert previous_heading not in prompt
+            assert current_heading not in prompt
+        validated_topics.append(request.topic_seq)
+        return {"items": []}, 0.0
+
+    monkeypatch.setattr(run_eval, "post", check_request)
+    monkeypatch.setenv("INTERNAL_TOKEN", "test-token")
+    monkeypatch.setattr(sys, "argv", ["run_eval", "--layers", "l3", "--runs", "1", "--l3-topic-boundary"])
+    assert run_eval.main() == 0
+    assert validated_topics == [topic["topicSeq"] for topic in gold["topics"]]
+
+
+def test_L3_경계를_생략하면_기존_입력을_쓰고_목록_밖_경계는_거부한다(meeting, gold):
+    payload = run_eval.l3_requests(meeting, gold)[1]
+    assert "topicStartUtteranceId" not in payload
+    request = SummarizeTopicRequest.model_validate(payload)
+    assert "### 이전 주제 참고 발화" not in build_prompt_variables(request, [])["UTTERANCES"]
+
+    missing_id = max(utterance["utteranceId"] for utterance in meeting["utterances"]) + 1
+    with pytest.raises(ValidationError, match="topicStartUtteranceId"):
+        SummarizeTopicRequest.model_validate({**payload, "topicStartUtteranceId": missing_id})
+
+
+def test_L3_평가_파일에는_정답과_매칭되지_않은_응답_항목도_남는다(monkeypatch, tmp_path, gold):
+    first, second, *remaining = gold["topics"]
+    extra_item = {
+        "itemType": "DISCUSSION",
+        "content": "정답 라벨에 없는 논의",
+        "reason": "첫 주제의 발화에서 나온 제안",
+        "evidenceUtteranceId": first["startUtteranceId"],
+    }
+
+    def post(_base_url, path, _token, payload, _timeout):
+        assert path == run_eval.PATHS["l3"]
+        if payload["topicSeq"] == second["topicSeq"]:
+            raise run_eval.CallFailed("HTTP 503 /l3")
+        items = [extra_item] if payload["topicSeq"] == first["topicSeq"] else []
+        return {"items": items}, 0.0
+
+    out = tmp_path / "l3.json"
+    monkeypatch.setattr(run_eval, "post", post)
+    monkeypatch.setenv("INTERNAL_TOKEN", "test-token")
+    monkeypatch.setattr(sys, "argv", ["run_eval", "--layers", "l3", "--runs", "1", "--out", str(out)])
+
+    assert run_eval.main() == 1
+    [run] = json.loads(out.read_text(encoding="utf-8"))["runs"]
+    assert run["l3_results"] == [
+        {"topicSeq": first["topicSeq"], "items": [extra_item]},
+        *({"topicSeq": topic["topicSeq"], "items": []} for topic in remaining),
+    ]
+    assert run["l3_topic_boundary"] is False
+    assert run["failures"] == ["l3: HTTP 503 /l3"]
 
 
 # ── 채점 ────────────────────────────────────────────────────────────────────────
@@ -338,7 +417,7 @@ def test_완벽한_서버로_전체를_돌리면_모든_계층이_만점이고_�
     from types import SimpleNamespace
 
     monkeypatch.setattr(run_eval, "post", _perfect_server(gold))
-    args = SimpleNamespace(base_url="http://x", timeout=1.0)
+    args = SimpleNamespace(base_url="http://x", timeout=1.0, l3_topic_boundary=False)
 
     runs = []
     for _ in range(2):

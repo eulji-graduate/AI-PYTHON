@@ -96,7 +96,9 @@ def l2_request(meeting: dict) -> dict:
     return {**base(meeting), "utterances": meeting["utterances"]}
 
 
-def l3_requests(meeting: dict, gold: dict, overlap: int = OVERLAP_UTTERANCES) -> list[dict]:
+def l3_requests(
+    meeting: dict, gold: dict, overlap: int = OVERLAP_UTTERANCES, *, include_topic_boundary: bool = False
+) -> list[dict]:
     """L3 입력 — 정답 주제 구간에 **운영과 같이 앞 주제 끝 `overlap`발화를 얹어** 보낸다.
 
     다른 계층은 고유 구간(`utterances_of`)만 보내지만 L3는 그러면 안 된다. 운영의 L2(`parse_topics`)가
@@ -107,15 +109,16 @@ def l3_requests(meeting: dict, gold: dict, overlap: int = OVERLAP_UTTERANCES) ->
     for topic in gold["topics"]:
         start = next(i for i, u in enumerate(utterances) if u["utteranceId"] >= topic["startUtteranceId"])
         end = max(i for i, u in enumerate(utterances) if u["utteranceId"] <= topic["endUtteranceId"])
-        requests.append(
-            {
-                **base(meeting),
-                "topicSeq": topic["topicSeq"],
-                "topic": topic["topic"],
-                "utterances": utterances[max(0, start - overlap) : end + 1],
-                "participants": meeting["participants"],
-            }
-        )
+        payload = {
+            **base(meeting),
+            "topicSeq": topic["topicSeq"],
+            "topic": topic["topic"],
+            "utterances": utterances[max(0, start - overlap) : end + 1],
+            "participants": meeting["participants"],
+        }
+        if include_topic_boundary:
+            payload["topicStartUtteranceId"] = utterances[start]["utteranceId"]
+        requests.append(payload)
     return requests
 
 
@@ -247,6 +250,7 @@ class Run:
         self.usage: dict[str, dict[str, float]] = {}
         self.failures: list[str] = []
         self.overview_text = ""
+        self.l3_results: list[dict] | None = None
 
     def call(self, layer: str, payload: dict) -> dict | None:
         try:
@@ -276,10 +280,13 @@ class Run:
 
     def run_l3(self) -> None:
         results: list[dict] = []
-        for payload in l3_requests(self.meeting, self.gold):
+        for payload in l3_requests(
+            self.meeting, self.gold, include_topic_boundary=self.args.l3_topic_boundary
+        ):
             data = self.call("l3", payload)
             if data is not None:
                 results.append({"topicSeq": payload["topicSeq"], "items": data.get("items", [])})
+        self.l3_results = results
         # ⚠️ 정답 항목별로 (주제, 근거 발화)가 뽑혔는지와 유형을 접어 둔다 — 실행 간 같은 항목이 갈렸는지 비교한다.
         got = {
             (result["topicSeq"], item["evidenceUtteranceId"]): item["itemType"]
@@ -408,6 +415,9 @@ def main() -> int:
     )
     parser.add_argument("--fixture", type=Path, default=FIXTURES / "demo_meeting.json")
     parser.add_argument("--gold", type=Path, default=FIXTURES / "demo_meeting.gold.json")
+    parser.add_argument(
+        "--l3-topic-boundary", action="store_true", help="L3 요청에 현재 주제의 시작 발화 ID를 포함"
+    )
     parser.add_argument("--timeout", type=float, default=120.0)
     parser.add_argument("--out", type=Path, default=None)
     args = parser.parse_args()
@@ -430,16 +440,18 @@ def main() -> int:
         run = Run(args, token, meeting, gold)
         for layer in selected:
             getattr(run, f"run_{layer}")()
-        runs.append(
-            {
-                "run": index + 1,
-                "metrics": run.metrics,
-                "outcomes": run.outcomes,
-                "usage": run.usage,
-                "failures": run.failures,
-                "overview": run.overview_text,
-            }
-        )
+        result = {
+            "run": index + 1,
+            "metrics": run.metrics,
+            "outcomes": run.outcomes,
+            "usage": run.usage,
+            "failures": run.failures,
+            "overview": run.overview_text,
+        }
+        if args.out and run.l3_results is not None:
+            result["l3_results"] = run.l3_results
+            result["l3_topic_boundary"] = args.l3_topic_boundary
+        runs.append(result)
         print(f"실행 {index + 1}/{args.runs} 완료 (실패 호출 {len(run.failures)}건)", file=sys.stderr)
 
     summary = build_summary(runs)
