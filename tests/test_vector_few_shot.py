@@ -33,6 +33,8 @@ def _settings(monkeypatch):
     monkeypatch.setenv("INTERNAL_TOKEN", TOKEN)
     monkeypatch.setenv("GEMINI_API_KEY", "")
     monkeypatch.setenv("DRY_RUN", "1")
+    # 이 파일이 의존하는 값이다. 꺼져 있으면 조회가 빈 목록을 돌려줘 저장 테스트가 실패한다.
+    monkeypatch.setenv("FEW_SHOT_ENABLED", "1")
     # 로컬 모드. 같은 프로세스 안의 임시 DB 라 테스트끼리 섞이지 않게 매번 비운다.
     monkeypatch.setenv("QDRANT_URL", ":memory:")
     get_settings.cache_clear()
